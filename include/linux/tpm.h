@@ -52,6 +52,8 @@ enum tpm_algorithms {
 	TPM_ALG_NULL		= 0x0010,
 	TPM_ALG_SM3_256		= 0x0012,
 	TPM_ALG_ECC		= 0x0023,
+	TPM_ALG_SYMCIPHER	= 0x0025,
+	TPM_ALG_CTR		= 0x0040,
 	TPM_ALG_CFB		= 0x0043,
 };
 
@@ -289,10 +291,12 @@ enum tpm2_command_codes {
 	TPM2_CC_EVENT_SEQUENCE_COMPLETE = 0x0185,
 	TPM2_CC_HASH_SEQUENCE_START     = 0x0186,
 	TPM2_CC_CREATE_LOADED           = 0x0191,
-	TPM2_CC_LAST		        = 0x0193, /* Spec 1.36 */
+	TPM2_CC_ENCRYPT_DECRYPT_2	= 0x0193,
+	TPM2_CC_LAST		        = 0x0198, /* Spec 1.59 */
 };
 
 enum tpm2_permanent_handles {
+	TPM2_RH_OWNER		= 0x40000001,
 	TPM2_RH_NULL		= 0x40000007,
 	TPM2_RS_PW		= 0x40000009,
 };

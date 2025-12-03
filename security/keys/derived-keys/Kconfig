@@ -1,0 +1,46 @@
+config HAVE_DERIVED_KEYS
+	bool
+
+config DERIVED_KEYS_TPM
+	bool "TPM-based derived keys"
+	depends on TCG_TPM >= DERIVED_KEYS
+	default y
+	select HAVE_DERIVED_KEYS
+	help
+	  Enable use of the Trusted Platform Module (TPM) as derived key
+	  backend. Trusted keys are random number symmetric keys,
+	  which will be generated and RSA-sealed by the TPM.
+	  The TPM only unseals the keys, if the boot PCRs and other
+	  criteria match.
+
+config DERIVED_KEYS_SALT_UID_GID
+	bool "Allow requesting uid/gid to be mixed into the key salt"
+	default y
+	help
+	  If the key is requested with a "uid" option as part of the callout info,
+	  the caller's uid will be mixed into the derived key. In this case
+	  different users will derive different keys. Similarly, "gid" option will
+	  do the same for the caller's gid.
+
+config DERIVED_KEYS_SALT_FSINFO
+	bool "Allow some filesystem info of the requesting program to be mixed into the key salt"
+	default y
+	help
+	  Enables support for "path", "inode" and "fsuuid" options to be used in
+	  the callout info. "path" will mix the caller's executable path into the
+	  derived key. "inode" will mix the caller's executable inode number into
+	  the derived key. "fsuuid" will mix the filesystem UUID of the filesystem
+	  of the caller's executable into the derived key.
+
+config DERIVED_KEYS_SALT_CSUM
+	bool "Allow executable cryptographic checksum to be mixed into the key salt"
+	depends on IMA
+	default y
+	help
+	  Enables support for "csum" option to be used in the callout info.
+	  "csum" will mix the caller's executable cryptographic checksum as
+	  calculated by Integrity Measurement Architecture into the derived key.
+
+if !HAVE_DERIVED_KEYS
+	comment "No derive key source selected!"
+endif

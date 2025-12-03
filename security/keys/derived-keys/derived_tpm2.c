@@ -1,7 +1,5 @@
 #include "derived.h"
-#include <linux/tpm.h>
-
-#define TPM2_KERNEL_PRIMARY_PREFIX "kernel"
+#include "../../drivers/char/tpm/tpm.h"
 
 DEFINE_FREE(tpm_chip_put, struct tpm_chip *, if (_T) tpm_put_ops(_T))
 DEFINE_FREE(tpm_buf_free, struct tpm_buf *, if (_T) tpm_buf_destroy(_T))

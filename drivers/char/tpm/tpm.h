@@ -62,6 +62,7 @@ enum tpm_addr {
 
 /* TPM2 specific constants. */
 #define TPM2_SPACE_BUFFER_SIZE		16384 /* 16 kB */
+#define TPM2_KERNEL_PRIMARY_PREFIX	"kernel"
 
 struct	stclear_flags_t {
 	__be16	tag;

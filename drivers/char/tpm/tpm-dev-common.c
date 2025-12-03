@@ -21,14 +21,85 @@
 
 static struct workqueue_struct *tpm_dev_wq;
 
+static ssize_t tpm2_cc_allowed(const u8 *buf, size_t bufsiz)
+{
+	struct tpm_header *header = (void *)buf;
+	u16 tag = be16_to_cpu(header->tag);
+	u32 cc = be32_to_cpu(header->ordinal);
+
+	if (tag != TPM2_ST_SESSIONS || cc != TPM2_CC_CREATE_PRIMARY)
+		return 0;
+
+	/* skip handle area with one handle */
+	const u8 *ptr = buf + TPM_HEADER_SIZE + sizeof(u32);
+
+	/* skip auth area */
+	u32 auth_size = be32_to_cpu(*(__be32 *)ptr);
+	ptr += sizeof(u32) + auth_size;
+
+	/* skip sensitive area */
+	u16 sensitive_size = be16_to_cpu(*(__be16 *)ptr);
+	ptr += sizeof(u16) + sensitive_size;
+
+	/* public area size */
+	ptr += sizeof(u16);
+
+	/* algorithm */
+	u16 alg = be16_to_cpu(*(__be16 *)ptr);
+	if (alg != TPM_ALG_SYMCIPHER)
+		return 0;
+	ptr += sizeof(u16);
+
+	/* name hash alg */
+	ptr += sizeof(u16);
+
+	/* attr */
+	ptr += sizeof(u32);
+
+	/* auth policy size */
+	u16 auth_policy_size = be16_to_cpu(*(__be16 *)ptr);
+	ptr += sizeof(u16) + auth_policy_size;
+
+	/* cipher*/
+	u16 cipher = be16_to_cpu(*(__be16 *)ptr);
+	if (cipher != TPM_ALG_AES)
+		return 0;
+	ptr += sizeof(u16);
+
+	/* key size*/
+	ptr += sizeof(u16);
+
+	/* mode */
+	u16 mode = be16_to_cpu(*(__be16 *)ptr);
+	if (mode != TPM_ALG_CTR)
+		return 0;
+	ptr += sizeof(u16);
+
+	/* unique */
+	u16 unique_size = be16_to_cpu(*(__be16 *)ptr);
+	ptr += sizeof(u16);
+
+	if (unique_size < sizeof(TPM2_KERNEL_PRIMARY_PREFIX) - 1)
+		return 0;
+
+	if (memcmp(ptr, TPM2_KERNEL_PRIMARY_PREFIX, sizeof(TPM2_KERNEL_PRIMARY_PREFIX) - 1))
+		return 0;
+
+	return -EPERM;
+}
+
 static ssize_t tpm_dev_transmit(struct tpm_chip *chip, struct tpm_space *space,
 				u8 *buf, size_t bufsiz)
 {
 	struct tpm_header *header = (void *)buf;
 	ssize_t ret, len;
 
-	if (chip->flags & TPM_CHIP_FLAG_TPM2)
+	if (chip->flags & TPM_CHIP_FLAG_TPM2) {
 		tpm2_end_auth_session(chip);
+		ret = tpm2_cc_allowed(buf, bufsiz);
+		if (ret)
+			return ret;
+	}
 
 	ret = tpm2_prepare_space(chip, space, buf, bufsiz);
 	/* If the command is not implemented by the TPM, synthesize a

@@ -1,0 +1,45 @@
+name: B4 kernel patchset review
+
+on:
+  workflow_dispatch:
+    inputs:
+      tree:
+        description: 'Base tree'
+        default: 'https://github.com/torvalds/linux'
+        type: string
+      patchset:
+        description: 'Patchset message id'
+        required: true
+        type: string
+
+jobs:
+  b4-fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Install b4
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y b4
+    - name: Fetch kernel
+      uses: actions/checkout@v6
+      with:
+        repository: torvalds/linux
+        ref: master
+        path: linux
+    - name: Configure git
+      run: |
+        git -C linux config user.name "Ignat Korchagin"
+        git -C linux config user.email "6224695+ignatk@users.noreply.github.com"
+    - name: Prepare branch
+      run: |
+        git -C linux checkout -b "review-${{ github.run_id }}"
+        git -C linux fetch --depth=1 "${{ inputs.tree }}"
+        git -C linux reset --hard FETCH_HEAD
+    - name: Fetch patchset
+      run: cd linux && b4 shazam "${{ inputs.patchset }}"
+    - name: Push review branch
+      run: |
+        git -C linux remote add review 'https://ignatk:${{ secrets.GITHUB_TOKEN }}@github.com/ignatk/linux.git'
+        git -C linux push review "review-${{ github.run_id }}"
